@@ -50,4 +50,11 @@ public class BookController {
         bookService.deleteBook(id);
         return ResponseEntity.ok("Buku dengan ID " + id + " berhasil dihapus!");
     }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search (ISBN/Judul/Penulis)")
+    public ResponseEntity<List<BookResponse>> search(@RequestParam String keyword) {
+        List<BookResponse> results = bookService.searchBooks(keyword);
+        return ResponseEntity.ok(results);
+    }
 }

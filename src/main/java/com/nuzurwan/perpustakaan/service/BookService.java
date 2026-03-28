@@ -70,6 +70,17 @@ public class BookService {
         bookRepository.deleteById(id);
     }
 
+    // (Search) by isbn, title & author
+    public List<BookResponse> searchBooks(String keyword) {
+        // Call repository
+        List<Book> books = bookRepository.searchBooks(keyword);
+
+        // List<Book> -> List<BookResponse> use helper mapToResponse
+        return books.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     // Helper 1: Request -> Entity (result)
     private Book mapToEntity(BookRequest request) {
         return Book.builder()
