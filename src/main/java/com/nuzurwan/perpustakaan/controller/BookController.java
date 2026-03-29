@@ -1,9 +1,11 @@
 package com.nuzurwan.perpustakaan.controller;
 
 import com.nuzurwan.perpustakaan.dto.request.BookRequest;
+import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +22,7 @@ public class BookController {
 
     @PostMapping
     @Operation(summary = "Book Add")
-    public ResponseEntity<BookResponse> create(@RequestBody BookRequest request) {
+    public ResponseEntity<BookResponse> create(@Valid @RequestBody CreateBookRequest request) {
         BookResponse response = bookService.createBook(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
