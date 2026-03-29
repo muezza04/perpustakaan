@@ -1,5 +1,6 @@
 package com.nuzurwan.perpustakaan.exception;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError; // error yg ada dalam column pengisian data input
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -34,5 +35,17 @@ public class GlobalExceptionHandler {
         error.put("message", ex.getReason()); // Mengambil pesan dari 'throw' Anda
 
         return new ResponseEntity<>(error, ex.getStatusCode());
+    }
+
+    // 3. JARING PENGAMAN TERAKHIR: Menangkap kesalahan sistem/bug yang tidak terduga (Status 500)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleAllUncaughtErrors(Exception ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", "Terjadi kesalahan internal pada server. Silakan hubungi admin.");
+
+        // Penting untuk developer melihat apa yang salah di console
+        ex.printStackTrace();
+
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
