@@ -12,8 +12,9 @@ import lombok.*;
 @Builder // Memudahkan Anda membuat objek dengan gaya Book.builder().title("Java").build()
 public class Book {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID) // Spring Boot 3 / Hibernate 6 style
+    @Column(name = "id", updatable = false, nullable = false)
+    private String id; // Kita gunakan String agar lebih fleksibel di URL
 
     @Column(unique = true) // data harus uniq, data boleh kosong karena bersifat universal
     private String isbn;
@@ -21,11 +22,15 @@ public class Book {
     @Column(nullable = false) // data tidak boleh kosong or null
     private String title;
 
+    @Column(nullable = false)
     private String author;
+
     private String publisher;
+
+    @Column(nullable = false)
     private Integer releaseYear;
 
-    @Column(nullable = false) // data tidak boleh kosong atau null
+    @Column(nullable = false)
     private int stock;
 
     @Enumerated(EnumType.STRING)

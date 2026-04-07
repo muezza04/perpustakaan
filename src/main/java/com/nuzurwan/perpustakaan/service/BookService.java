@@ -1,7 +1,7 @@
 package com.nuzurwan.perpustakaan.service;
 
-import com.nuzurwan.perpustakaan.dto.request.BookRequest;
 import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
+import com.nuzurwan.perpustakaan.dto.request.UpdateBookRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.model.Book;
 import com.nuzurwan.perpustakaan.repository.BookRepository;
@@ -40,6 +40,7 @@ public class BookService {
             }
         } else {
             // Buat internal ID jika tidak memiliki ISBN
+            // substring(0, 8) berfungsi untuk memotong UUID yang panjang 36 menjadi 8
             finalIsbn = "INTERNAL-" + UUID.randomUUID().toString().substring(0, 8);
         }
 
@@ -49,12 +50,6 @@ public class BookService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
         }
-
-//        // CARI KATEGORI VALITADION
-//        // Jika Category adalah Enum, Spring akan otomatis error 400 jika input user tidak sesuai nama Enum.
-//        if (request.getCategory() == null || request.getCategory() != ) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori wajib dipilih!");
-//        }
 
         // --- 2. PROSES MAPPING & SAVE ---
 
@@ -80,25 +75,41 @@ public class BookService {
     public List<BookResponse> getAllBooks() {
         List<Book> books = bookRepository.findAll();
 
+        // VALIDASION: Cek apakah list kosong
+        if (books.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Daftar buku masih kosong!");
+        }
+
         // Mengubah List<Book> menjadi List<BookResponse>
         return books.stream().map(this::mapToResponse).toList();
     }
 
     // (Read) by id data
-    public BookResponse getBookById(Long id) {
+    public BookResponse getBookById(String id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Buku dengan ID " + id + " tidak ditemukan!"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buku dengan ID " + id + " tidak ditemukan!"));
         return mapToResponse(book);
     }
 
     // (Update) by id data
-    public BookResponse updateBook(Long id, BookRequest request) {
-        // Cari dulu bukunya ada atau tidak
+    public BookResponse updateBook(String id, UpdateBookRequest request) {
+        // 1. Cari data lama
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gagal update, buku tidak ditemukan!"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buku tidak ditemukan!"));
 
-        // Set ulang data dengan data baru dari Request
-        book.setIsbn(request.getIsbn());
+        // 2. Normalisasi ISBN (Jika user mengubah ISBN)
+        String finalIsbn = request.getIsbn();
+        if (finalIsbn != null && !finalIsbn.isBlank()) {
+            finalIsbn = finalIsbn.replace("-", "").toUpperCase();
+
+            // Cek duplikasi: Jika ISBN baru beda dengan ISBN lama, cek apakah sudah dipakai buku lain
+            if (!finalIsbn.equals(book.getIsbn()) && bookRepository.existsByIsbn(finalIsbn)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ISBN " + finalIsbn + " sudah digunakan buku lain!");
+            }
+            book.setIsbn(finalIsbn);
+        }
+
+        // 3. Update field lainnya
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setPublisher(request.getPublisher());
@@ -106,31 +117,40 @@ public class BookService {
         book.setStock(request.getStock());
         book.setCategory(request.getCategory());
 
-        // Simpan perubahan
-        Book updatedBook = bookRepository.save(book);
-        return mapToResponse(updatedBook);
+        return mapToResponse(bookRepository.save(book));
     }
 
     // (Delete) by id Book
-    public void deleteBook(Long id) {
+    public void deleteBook(String id) {
         if (!bookRepository.existsById(id)) {
-            throw new RuntimeException("Gagal hapus, buku tidak ditemukan!");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Gagal hapus, buku tidak ditemukan!");
         }
         bookRepository.deleteById(id);
     }
 
     // (Search) by isbn, title & author
     public List<BookResponse> searchBooks(String keyword) {
-        // Call repository
+        // 1. VALIDASI INPUT: Cegah keyword kosong atau null, trim() = untuk menghapus spasi diluar kata
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kata kunci pencarian tidak boleh kosong!");
+        }
+
+        // 2. PROSES PENCARIAN
         List<Book> books = bookRepository.searchBooks(keyword);
 
-        // List<Book> -> List<BookResponse> use helper mapToResponse
+        // 3. VALIDASI HASIL: Jika tidak ada buku yang cocok
+        if (books.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Buku dengan kata kunci '" + keyword + "' tidak ditemukan");
+        }
+
+        // 4. MAPPING KE RESPONSE
         return books.stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
-    // Helper 2: Entity -> Response (result)
+    // Helper: Entity -> Response (result)
     private BookResponse mapToResponse(Book book) {
         return BookResponse.builder()
                 .id(book.getId())

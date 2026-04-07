@@ -1,7 +1,7 @@
 package com.nuzurwan.perpustakaan.controller;
 
-import com.nuzurwan.perpustakaan.dto.request.BookRequest;
 import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
+import com.nuzurwan.perpustakaan.dto.request.UpdateBookRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,19 +36,19 @@ public class BookController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Book Find by Id")
-    public ResponseEntity<BookResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<BookResponse> getById(@PathVariable String id) {
         return ResponseEntity.ok(bookService.getBookById(id));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Book Update")
-    public ResponseEntity<BookResponse> update(@PathVariable Long id, @RequestBody BookRequest request) {
+    public ResponseEntity<BookResponse> update(@PathVariable String id, @RequestBody UpdateBookRequest request) {
         return ResponseEntity.ok(bookService.updateBook(id, request));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Book Delete by Id")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable String id) {
         bookService.deleteBook(id);
         return ResponseEntity.ok("Buku dengan ID " + id + " berhasil dihapus!");
     }
@@ -56,7 +56,6 @@ public class BookController {
     @GetMapping("/search")
     @Operation(summary = "Search (ISBN/Judul/Penulis)")
     public ResponseEntity<List<BookResponse>> search(@RequestParam String keyword) {
-        List<BookResponse> results = bookService.searchBooks(keyword);
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(bookService.searchBooks(keyword));
     }
 }

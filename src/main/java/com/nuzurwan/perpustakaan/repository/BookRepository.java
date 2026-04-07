@@ -9,9 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface BookRepository extends JpaRepository<Book, Long> {
-
+public interface BookRepository extends JpaRepository<Book, String> {
     boolean existsByIsbn(String isbn); // untuk cek isbn apakah sudah atau belum
+
     // Query untuk mencari di 3 kolom sekaligus
     @Query("SELECT b FROM Book b WHERE " +
             "LOWER(b.isbn) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
