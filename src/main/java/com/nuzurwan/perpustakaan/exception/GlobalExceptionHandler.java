@@ -1,13 +1,23 @@
 package com.nuzurwan.perpustakaan.exception;
 
+// Kebutuhan untuk status kode HTTP (seperti 200, 400, 404, 500)
 import org.springframework.http.HttpStatus;
+// Wadah untuk membungkus respon data, status, dan header HTTP
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError; // error yg ada dalam column pengisian data input
+// Nama "Kecelakaan/Error" yang terjadi jika validasi DTO (@Valid) gagal
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler; // anotasi untuk memberitahu error apa
+// Nama "Kecelakaan/Error" untuk logika bisnis (misal: data tidak ditemukan di Service)
+import org.springframework.web.server.ResponseStatusException;
+// Untuk mengambil detail kolom mana yang salah input (misal: kolom 'isbn')
+import org.springframework.validation.FieldError;
+// Penanda (Anotasi) untuk menentukan method mana yang menangani error tertentu
+import org.springframework.web.bind.annotation.ExceptionHandler;
+// Penanda bahwa class ini adalah "Jaring Pengaman Global" untuk semua Controller
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException; // error logika ex: service
+// Memvalidasi masukan JSON structure, tipe data, choose enum
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
+// Library standar Java untuk menyimpan data dalam bentuk Key (kunci) dan Value (isi)
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,5 +57,21 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
 
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Menangani error jika format JSON yang dikirim client rusak atau
+    // tipe data tidak sesuai (misal: input string ke variabel Integer dll).
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleJsonError(HttpMessageNotReadableException ex) {
+        Map<String, String> error = new HashMap<>();
+
+        // Cek apakah errornya karena salah isi Enum
+        if (ex.getMessage().contains("com.nuzurwan.perpustakaan.model.Category")) {
+            error.put("category", "Pilihan kategori tidak tersedia. Silakan pilih kategori yang valid.");
+        } else {
+            error.put("error", "Struktur JSON tidak valid (cek koma atau format data)");
+        }
+
+        return ResponseEntity.badRequest().body(error);
     }
 }

@@ -26,12 +26,21 @@ public class BookService {
     public BookResponse createBook(CreateBookRequest request) {
         // --- 1. VALIDASI LOGIKA BISNIS ---
 
-        // A. Cek duplikasi ISBN (Hanya jika ISBN tidak kosong/null)
-        if (request.getIsbn() != null && !request.getIsbn().isBlank()) {
-            if (bookRepository.existsByIsbn(request.getIsbn())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Gagal Simpan: ISBN " + request.getIsbn() + " sudah terdaftar!");
+        // A. Ambil nilai ISBN dari request
+        String finalIsbn = request.getIsbn();
+
+        if (finalIsbn != null && !finalIsbn.isBlank()) {
+            // 1. Hapus strip (-)
+            // 2. Ubah SEMUA menjadi HURUF BESAR (x jadi X)
+            finalIsbn = finalIsbn.replace("-", "").toUpperCase(); // <--- TAMBAHKAN .toUpperCase()
+
+            // Cek Duplikasi setelah dibersihkan dan di-Besarkan
+            if (bookRepository.existsByIsbn(finalIsbn)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ISBN sudah terdaftar!");
             }
+        } else {
+            // Buat internal ID jika tidak memiliki ISBN
+            finalIsbn = "INTERNAL-" + UUID.randomUUID().toString().substring(0, 8);
         }
 
         // B. Validasi Tahun Terbit Dinamis (Tidak boleh melebihi tahun saat ini)
@@ -41,17 +50,24 @@ public class BookService {
                     "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
         }
 
+//        // CARI KATEGORI VALITADION
+//        // Jika Category adalah Enum, Spring akan otomatis error 400 jika input user tidak sesuai nama Enum.
+//        if (request.getCategory() == null || request.getCategory() != ) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori wajib dipilih!");
+//        }
+
         // --- 2. PROSES MAPPING & SAVE ---
 
-        // Ubah Request jadi Entity
-        Book book = mapToEntity(request);
-
-        // Logika tambahan: Jika ISBN kosong, buatkan ID internal otomatis
-        if (book.getIsbn() == null || book.getIsbn().isBlank()) {
-            // Generate UUID (Contoh: 550e8400-e29b-41d4-a716-446655440000)
-            String randomId = UUID.randomUUID().toString();
-            book.setIsbn("INTERNAL-" + randomId);
-        }
+        // Manual Request to Entity bersifat khusus
+        Book book = Book.builder()
+                .isbn(finalIsbn) // Gunakan ISBN yang sudah bersih/generated
+                .title(request.getTitle())
+                .author(request.getAuthor())
+                .publisher(request.getPublisher())
+                .releaseYear(request.getReleaseYear())
+                .stock(request.getStock())
+                .category(request.getCategory()) // Masukkan objek category hasil temuan repo
+                .build();
 
         // Simpan ke database (Hasil simpan ditampung di variabel 'savedBook')
         Book savedBook = bookRepository.save(book);
@@ -112,19 +128,6 @@ public class BookService {
         return books.stream()
                 .map(this::mapToResponse)
                 .toList();
-    }
-
-    // Helper 1: Request -> Entity (result) Create
-    private Book mapToEntity(CreateBookRequest request) {
-        return Book.builder()
-                .isbn(request.getIsbn())
-                .title(request.getTitle())
-                .author(request.getAuthor())
-                .publisher(request.getPublisher())
-                .releaseYear(request.getReleaseYear())
-                .stock(request.getStock())
-                .category(request.getCategory())
-                .build();
     }
 
     // Helper 2: Entity -> Response (result)
