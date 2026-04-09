@@ -65,12 +65,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleJsonError(HttpMessageNotReadableException ex) {
         Map<String, String> error = new HashMap<>();
 
-        // Cek apakah errornya karena salah isi Enum
-        if (ex.getMessage().contains("com.nuzurwan.perpustakaan.model.Category")) {
-            error.put("category", "Pilihan kategori tidak tersedia. Silakan pilih kategori yang valid.");
-        } else {
-            error.put("error", "Struktur JSON tidak valid (cek koma atau format data)");
-        }
+        // fokus hanya pada kesalahan struktur JSON secara umum
+        error.put("error", "Format JSON tidak valid. Pastikan tanda koma, tanda petik, dan tipe data sudah benar.");
 
         return ResponseEntity.badRequest().body(error);
     }

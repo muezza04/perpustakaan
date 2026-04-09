@@ -34,5 +34,6 @@ public class UpdateBookRequest {
     private int stock;
 
     @NotNull(message = "Kategori buku wajib dipilih")
-    private Category category;
+    @Schema(example = "TECHNOLOGY", description = "[ TECHNOLOGY, SCIENCE, HEALTH_MEDICINE, ECONOMY_BUSINESS, SOCIAL_POLITICS, EDUCATION, ARTS_DESIGN, RELIGION, HISTORY_GEOGRAPHY, LITERATURE, LANGUAGE, REFERENCE, JOURNAL, THESIS, PROCEEDINGS, GENERAL ]")
+    private String category;
 }

@@ -24,5 +24,15 @@ public enum Category {
 
     // --- LAINNYA ---
 
-    GENERAL           // Buku umum, motivasi, hobi, atau ensiklopedia umum
+    GENERAL;           // Buku umum, motivasi, hobi, atau ensiklopedia umum
+
+    // Fungsi untuk cek apakah string dari user ada di daftar Enum ini
+    public static boolean isValid(String value) {
+        for (Category c : Category.values()) {
+            if (c.name().equals(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -4,6 +4,7 @@ import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
 import com.nuzurwan.perpustakaan.dto.request.UpdateBookRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.model.Book;
+import com.nuzurwan.perpustakaan.model.Category;
 import com.nuzurwan.perpustakaan.repository.BookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,8 +31,19 @@ public class BookService {
         String finalIsbn = request.getIsbn();
 
         if (finalIsbn != null && !finalIsbn.isBlank()) {
-            // 1. Hapus strip (-)
-            // 2. Ubah SEMUA menjadi HURUF BESAR (x jadi X)
+            // 1. VALIDASI: Jika TIDAK ada strip, maka MAX 13 karakter
+            if (!finalIsbn.contains("-") && finalIsbn.length() > 13) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "ISBN tanpa tanda hubung (strip) maksimal 13 karakter!");
+            }
+
+            /* 1. VALIDASI WAJIB STRIP: Cek apakah teks mengandung tanda hubung
+            if (!finalIsbn.contains("-")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "ISBN wajib menggunakan tanda hubung (strip). Contoh: 978-602-8519-93-9");
+            } */
+
+            // 2. Ubah SEMUA menjadi HURUF BESAR (x jadi X) Hapus strip (-)
             finalIsbn = finalIsbn.replace("-", "").toUpperCase(); // <--- TAMBAHKAN .toUpperCase()
 
             // Cek Duplikasi setelah dibersihkan dan di-Besarkan
@@ -51,6 +63,11 @@ public class BookService {
                     "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
         }
 
+        // 1. Validasi Manual untuk Enum
+        if (!Category.isValid(request.getCategory())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori '" + request.getCategory() + "' tidak tersedia!");
+        }
+
         // --- 2. PROSES MAPPING & SAVE ---
 
         // Manual Request to Entity bersifat khusus
@@ -61,7 +78,7 @@ public class BookService {
                 .publisher(request.getPublisher())
                 .releaseYear(request.getReleaseYear())
                 .stock(request.getStock())
-                .category(request.getCategory()) // Masukkan objek category hasil temuan repo
+                .category(Category.valueOf(request.getCategory())) // tipe data string request menjadi category
                 .build();
 
         // Simpan ke database (Hasil simpan ditampung di variabel 'savedBook')
@@ -99,14 +116,40 @@ public class BookService {
 
         // 2. Normalisasi ISBN (Jika user mengubah ISBN)
         String finalIsbn = request.getIsbn();
-        if (finalIsbn != null && !finalIsbn.isBlank()) {
-            finalIsbn = finalIsbn.replace("-", "").toUpperCase();
 
-            // Cek duplikasi: Jika ISBN baru beda dengan ISBN lama, cek apakah sudah dipakai buku lain
-            if (!finalIsbn.equals(book.getIsbn()) && bookRepository.existsByIsbn(finalIsbn)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ISBN " + finalIsbn + " sudah digunakan buku lain!");
+        if (finalIsbn != null && !finalIsbn.isBlank()) {
+            // 1. VALIDASI: Jika TIDAK ada strip, maka MAX 13 karakter
+            if (!finalIsbn.contains("-") && finalIsbn.length() > 13) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "ISBN tanpa tanda hubung (-) maksimal 13 karakter!");
             }
-            book.setIsbn(finalIsbn);
+
+            /* 1. VALIDASI WAJIB STRIP: Cek apakah teks mengandung tanda hubung
+            if (!finalIsbn.contains("-")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "ISBN wajib menggunakan tanda hubung (strip). Contoh: 978-602-8519-93-9");
+            } */
+
+            // 2. Normalisasi: Baru hapus strip dan ubah ke huruf besar setelah divalidasi
+            String cleanIsbn = finalIsbn.replace("-", "").toUpperCase();
+
+            // 3. Cek duplikasi: Bandingkan dengan ISBN yang sudah bersih di DB
+            if (!cleanIsbn.equals(book.getIsbn()) && bookRepository.existsByIsbn(cleanIsbn)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ISBN sudah digunakan buku lain!");
+            }
+
+            book.setIsbn(cleanIsbn);
+        }
+
+        int currentYear = LocalDate.now().getYear();
+        if (request.getReleaseYear() > currentYear) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
+        }
+
+        // Validasi Manual untuk Enum
+        if (!Category.isValid(request.getCategory())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori '" + request.getCategory() + "' tidak tersedia!");
         }
 
         // 3. Update field lainnya
@@ -115,7 +158,7 @@ public class BookService {
         book.setPublisher(request.getPublisher());
         book.setReleaseYear(request.getReleaseYear());
         book.setStock(request.getStock());
-        book.setCategory(request.getCategory());
+        book.setCategory(Category.valueOf(request.getCategory())); // wajib memiliki validari manual enum sebelum string dirubah ke categry
 
         return mapToResponse(bookRepository.save(book));
     }
