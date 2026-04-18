@@ -1,7 +1,7 @@
 package com.nuzurwan.perpustakaan.controller;
 
-import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
-import com.nuzurwan.perpustakaan.dto.request.UpdateBookRequest;
+import com.nuzurwan.perpustakaan.dto.request.BookCreateRequest;
+import com.nuzurwan.perpustakaan.dto.request.BookUpdateRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,41 +21,42 @@ public class BookController {
     private final BookService bookService;
 
     @PostMapping
-    @Operation(summary = "Book Add")
-    public ResponseEntity<BookResponse> create(@Valid @RequestBody CreateBookRequest request) {
+    @Operation(summary = "Create new Book")
+    public ResponseEntity<BookResponse> create(@Valid @RequestBody BookCreateRequest request) {
         BookResponse response = bookService.createBook(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    @Operation(summary = "Book Read All")
+    @Operation(summary = "Get All Book")
     public ResponseEntity<List<BookResponse>> getAll() {
         List<BookResponse> response = bookService.getAllBooks();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Book Find by Id")
+    @Operation(summary = "Get by Id Book")
     public ResponseEntity<BookResponse> getById(@PathVariable String id) {
         return ResponseEntity.ok(bookService.getBookById(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Book Update")
-    public ResponseEntity<BookResponse> update(@PathVariable String id, @Valid @RequestBody UpdateBookRequest request) {
+    @Operation(summary = "Update by Id Book")
+    public ResponseEntity<BookResponse> update(@PathVariable String id, @Valid @RequestBody BookUpdateRequest request) {
         return ResponseEntity.ok(bookService.updateBook(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Book Delete by Id")
+    @Operation(summary = "Delete by Id Book")
     public ResponseEntity<String> delete(@PathVariable String id) {
         bookService.deleteBook(id);
-        return ResponseEntity.ok("Buku dengan ID " + id + " berhasil dihapus!");
+        return ResponseEntity.noContent().build(); // mengirim status 204
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search (ISBN/Judul/Penulis)")
-    public ResponseEntity<List<BookResponse>> search(@RequestParam String keyword) {
+    @Operation(summary = "Search (ISBN/Judul/Penulis) Book")
+    public ResponseEntity<List<BookResponse>> search(
+            @RequestParam(required = false) String keyword) { //
         return ResponseEntity.ok(bookService.searchBooks(keyword));
     }
 }

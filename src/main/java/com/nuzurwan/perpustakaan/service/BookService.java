@@ -1,11 +1,13 @@
 package com.nuzurwan.perpustakaan.service;
 
-import com.nuzurwan.perpustakaan.dto.request.CreateBookRequest;
-import com.nuzurwan.perpustakaan.dto.request.UpdateBookRequest;
+import com.nuzurwan.perpustakaan.dto.request.BookCreateRequest;
+import com.nuzurwan.perpustakaan.dto.request.BookUpdateRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
 import com.nuzurwan.perpustakaan.model.Book;
 import com.nuzurwan.perpustakaan.model.Category;
 import com.nuzurwan.perpustakaan.repository.BookRepository;
+import jakarta.validation.constraints.NotNull;
+import lombok.NonNull; // untuk memastikan data yang diterima(request) tidak null
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +26,7 @@ public class BookService {
     private final BookRepository bookRepository;
 
     // (Add) data
-    public BookResponse createBook(CreateBookRequest request) {
+    public BookResponse createBook(@NonNull BookCreateRequest request) {
         // --- 1. VALIDASI LOGIKA BISNIS ---
 
         // A. Ambil nilai ISBN dari request
@@ -84,7 +86,7 @@ public class BookService {
         // Simpan ke database (Hasil simpan ditampung di variabel 'savedBook')
         Book savedBook = bookRepository.save(book);
 
-        // Kembalikan dalam bentuk Response DTO (Lengkap dengan ID baru)
+        // Kembalikan dalam bentuk Entity -> Response DTO (Lengkap dengan ID baru)
         return mapToResponse(savedBook);
     }
 
@@ -109,7 +111,7 @@ public class BookService {
     }
 
     // (Update) by id data
-    public BookResponse updateBook(String id, UpdateBookRequest request) {
+    public BookResponse updateBook(String id, @NonNull BookUpdateRequest request) {
         // 1. Cari data lama
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buku tidak ditemukan!"));
@@ -166,14 +168,14 @@ public class BookService {
     // (Delete) by id Book
     public void deleteBook(String id) {
         if (!bookRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Gagal hapus, buku tidak ditemukan!");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found!");
         }
         bookRepository.deleteById(id);
     }
 
     // (Search) by isbn, title & author
-    public List<BookResponse> searchBooks(String keyword) {
-        // 1. VALIDASI INPUT: Cegah keyword kosong atau null, trim() = untuk menghapus spasi diluar kata
+    public List<BookResponse> searchBooks(@NotNull String keyword) {
+        // 1. VALIDASI INPUT: Cegah keyword kosong atau null, trim() = untuk menghapus spasi berlebih di awal dan akhir kata
         if (keyword == null || keyword.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kata kunci pencarian tidak boleh kosong!");
         }
@@ -194,7 +196,7 @@ public class BookService {
     }
 
     // Helper: Entity -> Response (result)
-    private BookResponse mapToResponse(Book book) {
+    private BookResponse mapToResponse(@NonNull Book book) {
         return BookResponse.builder()
                 .id(book.getId())
                 .isbn(book.getIsbn())

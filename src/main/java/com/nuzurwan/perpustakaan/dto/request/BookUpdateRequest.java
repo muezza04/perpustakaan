@@ -1,12 +1,15 @@
 package com.nuzurwan.perpustakaan.dto.request;
 
-import com.nuzurwan.perpustakaan.model.Category;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Data
-public class UpdateBookRequest {
+@Data // karena data di request bersifat Mutabilitas
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookUpdateRequest {
 
     // ISBN tetap menggunakan Pattern agar jika user ingin memperbaiki salah ketik ISBN,
     // formatnya tetap terjaga. Tapi karena skripsi/buku tua boleh kosong, kita tetap pakai ^$

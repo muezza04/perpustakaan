@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
+// penggunaan JPA sudah memberikan tamplate object query standar like: save, findById, findAll, deleteById dll)
 public interface BookRepository extends JpaRepository<Book, String> {
     boolean existsByIsbn(String isbn); // untuk cek isbn apakah sudah atau belum
 

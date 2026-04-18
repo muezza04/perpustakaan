@@ -3,6 +3,7 @@ package com.nuzurwan.perpustakaan.dto.response;
 import com.nuzurwan.perpustakaan.model.Category;
 import lombok.*;
 
+// Tidak menggunakan Anotasi @Data seperti di request karena di response lebih mengutamakan keamanan
 @Getter
 @Setter
 @Builder

@@ -1,12 +1,15 @@
 package com.nuzurwan.perpustakaan.dto.request;
 
-import com.nuzurwan.perpustakaan.model.Category;
 import io.swagger.v3.oas.annotations.media.Schema; // memberikan meta-data atau informasi tambahan pada sebuah class atau field
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Data
-public class CreateBookRequest {
+@Data // karena data di request bersifat Mutabilitas
+@AllArgsConstructor
+@NoArgsConstructor
+public class BookCreateRequest {
 
     // Alasan penggunaan pattern karena bisa mengatur pola validasi tanpa ada celah
     // " ^$ " = string kosong, " | " = logika OR, " [0-9\-xX] " = data hanya angka, tanda hubung strip, serta huruf 'x' baik kecil maupun kapital untuk mendukung format ISBN lama
