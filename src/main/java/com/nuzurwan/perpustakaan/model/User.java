@@ -1,7 +1,6 @@
 package com.nuzurwan.perpustakaan.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Entity
@@ -21,20 +20,27 @@ public class User {
     private String email;
 
     @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = true)
+    private String lastName;
+
+    @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String fullName;
+    // untuk role dan status terutama berfungsi untuk create akum
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(nullable = false)
-    private UserRole role;
+    private UserRole role = UserRole.GUEST;
 
     /* @Builder.Default untuk membarikan nilai default pada lombok untuk memberi nilai tetap,
        karena disini ditetap isActive bernilai true.
        jika tidak menggunakannya lombok secara otomatis akan memberikan nilai false(boolean) null(Boolean) ketika builder di service
     */
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(nullable = false)
-    private Boolean isActive = true;
+    private UserStatus status = UserStatus.PENDING;
 }

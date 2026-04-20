@@ -12,16 +12,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor // Memudahkan membuat Unit Testing tanpa harus memanggil .set() satu per satu.
 public class UserCreateRequest {
 
-    @NotBlank(message = "email wajib di isi")
-    @Email(message = "format email tidak valid")
+    @NotBlank(message = "Email address is required")
+    @Email(message = "Invalid email format")
+    @Size(max = 100)
     private String email;
 
-    @NotBlank(message = "password wajib di isi")
-    @Size(min = 8, message = "password minimal 8 karakter")
+    @NotBlank(message = "First Name is required")
+    @Size(max = 50, message = "First Name maximal 50 characters")
+    private String firstName;
+
+    // Tidak pakai @NotBlank karena lastName bisa saja kosong (opsional)
+    @Size(max = 50, message = "Last Name maximal 50 characters")
+    private String lastName;
+
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 100, message = "Password minimal 8 dan maximal 100 characters")
     private String password;
-
-    // perubahan dalam data entity, dto(res, req), service = remove fullName change use firstName & lastName
-    @NotBlank(message = "wajib isi nama lengkap")
-    private String fullName;
-
 }

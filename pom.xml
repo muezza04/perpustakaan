@@ -30,7 +30,11 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
-
+        <!-- encode password BCrypt-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
         <!-- Swagger UI-->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -87,6 +91,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <!--fungsi dari tanda $ disini apa?-->
                             <version>${lombok.version}</version>
                         </path>
                         <path>

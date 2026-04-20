@@ -6,8 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+// interface di repository ibaratkan kontrak kerja
 @Repository
-public interface UserRespository extends JpaRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);   // Ganti dari findByUsername, Optional untuk tidak return null
     boolean existsByEmail(String email);        // Untuk validasi saat daftar
 }

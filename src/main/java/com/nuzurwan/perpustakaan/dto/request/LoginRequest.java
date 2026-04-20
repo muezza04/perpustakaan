@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserLoginRequest {
-    @NotBlank(message = "Email tidak boleh kosong")
-    @Email(message = "Format email tidak valid")
+public class LoginRequest {
+    @NotBlank(message = "Email address is required")
+    @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Password tidak boleh kosong")
+    @NotBlank(message = "Password is required")
     private String password;
 }
