@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data // karena data di request bersifat Mutabilitas
 @AllArgsConstructor // Menjamin Jackson/Spring Boot selalu bisa membuat objek dari JSON (Merubah data JSON menjadi object java).
 @NoArgsConstructor // Memudahkan membuat Unit Testing tanpa harus memanggil .set() satu per satu.
-public class UserChangePasswordRequest {
+public class UserUpdatePasswordRequest {
 
     @NotBlank(message = "Password lama wajib diisi")
     private String oldPassword;

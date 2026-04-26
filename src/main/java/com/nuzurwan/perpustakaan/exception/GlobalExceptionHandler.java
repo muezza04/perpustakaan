@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
 
         WebResponse<String> response = WebResponse.<String>builder()
-                .message("Validasi Gagal")
+                .message("Validation Failed")
                 .data(null)
                 .errors(allErrors)
                 .build();
@@ -61,10 +61,23 @@ public class GlobalExceptionHandler {
     // 3. MENANGKAP ERROR FORMAT JSON ATAU TIPE DATA
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<WebResponse<String>> handleJsonError(HttpMessageNotReadableException ex) {
+        String errorMessage = "Data input tidak valid atau format JSON salah";
+
+        // Analisis tambahan: Cek apakah error disebabkan oleh Enum yang salah
+        if (ex.getCause() instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
+            com.fasterxml.jackson.databind.exc.InvalidFormatException ife =
+                    (com.fasterxml.jackson.databind.exc.InvalidFormatException) ex.getCause();
+
+            errorMessage = String.format("Nilai '%s' tidak valid untuk field '%s'. Pilihan yang tersedia: %s",
+                    ife.getValue(),
+                    ife.getPath().get(0).getFieldName(),
+                    java.util.Arrays.toString(ife.getTargetType().getEnumConstants()));
+        }
+
         WebResponse<String> response = WebResponse.<String>builder()
-                .message("Invalid JSON format")
+                .message("Bad Request")
                 .data(null)
-                .errors("Ensure that the JSON structure is correct and the data types are correct")
+                .errors(errorMessage)
                 .build();
 
         return ResponseEntity.badRequest().body(response);
@@ -105,7 +118,7 @@ public class GlobalExceptionHandler {
 
         WebResponse<String> response = WebResponse.<String>builder()
                 .message("Internal Server Error")
-                .errors("Terjadi kesalahan internal: Sistem mendeteksi adanya data kosong yang tidak seharusnya.")
+                .errors("An internal error has occurred: The system has detected unexpected empty data. (NullPointer)")
                 .data(null)
                 .build();
 

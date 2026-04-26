@@ -1,5 +1,6 @@
 package com.nuzurwan.perpustakaan.dto.response;
 
+import com.nuzurwan.perpustakaan.model.BookStatus;
 import com.nuzurwan.perpustakaan.model.Category;
 import lombok.*;
 
@@ -15,6 +16,6 @@ public class BookResponse {
     private String author;
     private String publisher;
     private Integer releaseYear;
-    private int stock;
+    private BookStatus status;
     private Category category;
 }

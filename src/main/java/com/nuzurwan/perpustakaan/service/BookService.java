@@ -3,29 +3,40 @@ package com.nuzurwan.perpustakaan.service;
 import com.nuzurwan.perpustakaan.dto.request.BookCreateRequest;
 import com.nuzurwan.perpustakaan.dto.request.BookUpdateRequest;
 import com.nuzurwan.perpustakaan.dto.response.BookResponse;
+import com.nuzurwan.perpustakaan.dto.response.BookStatusResponse;
 import com.nuzurwan.perpustakaan.model.Book;
+import com.nuzurwan.perpustakaan.model.BookStatus;
 import com.nuzurwan.perpustakaan.model.Category;
 import com.nuzurwan.perpustakaan.repository.BookRepository;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.criteria.Predicate;
 import lombok.NonNull; // untuk memastikan data yang diterima(request) tidak null
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 // respon status error
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor // Otomatis menghubungkan Repository (Dependency Injection)
 public class BookService {
 
     private final BookRepository bookRepository;
 
     // (Add) data
+    /// Jangan lupa untuk testing data terutama untuk isbn
+    @Transactional
     public BookResponse createBook(@NonNull BookCreateRequest request) {
         // --- 1. VALIDASI LOGIKA BISNIS ---
 
@@ -65,11 +76,6 @@ public class BookService {
                     "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
         }
 
-        // 1. Validasi Manual untuk Enum
-        if (!Category.isValid(request.getCategory())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori '" + request.getCategory() + "' tidak tersedia!");
-        }
-
         // --- 2. PROSES MAPPING & SAVE ---
 
         // Manual Request to Entity bersifat khusus
@@ -79,8 +85,8 @@ public class BookService {
                 .author(request.getAuthor())
                 .publisher(request.getPublisher())
                 .releaseYear(request.getReleaseYear())
-                .stock(request.getStock())
-                .category(Category.valueOf(request.getCategory())) // tipe data string request menjadi category
+                .status(request.getStatus())
+                .category(request.getCategory()) // tipe data string request menjadi category
                 .build();
 
         // Simpan ke database (Hasil simpan ditampung di variabel 'savedBook')
@@ -91,26 +97,23 @@ public class BookService {
     }
 
     // (Read) All data
-    public List<BookResponse> getAllBooks() {
-        List<Book> books = bookRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<BookResponse> getAllBooks(Pageable pageable) {
+        Page<Book> books = bookRepository.findAll(pageable);
 
-        // VALIDASION: Cek apakah list kosong
-        if (books.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Daftar buku masih kosong!");
-        }
-
-        // Mengubah List<Book> menjadi List<BookResponse>
-        return books.stream().map(this::mapToResponse).toList();
+        return books.map(this::mapToResponse);
     }
 
     // (Read) by id data
+    @Transactional(readOnly = true)
     public BookResponse getBookById(String id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buku dengan ID " + id + " tidak ditemukan!"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found"));
         return mapToResponse(book);
     }
 
     // (Update) by id data
+    @Transactional
     public BookResponse updateBook(String id, @NonNull BookUpdateRequest request) {
         // 1. Cari data lama
         Book book = bookRepository.findById(id)
@@ -149,23 +152,20 @@ public class BookService {
                     "Tahun terbit tidak boleh melebihi tahun saat ini (" + currentYear + ")");
         }
 
-        // Validasi Manual untuk Enum
-        if (!Category.isValid(request.getCategory())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kategori '" + request.getCategory() + "' tidak tersedia!");
-        }
 
         // 3. Update field lainnya
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setPublisher(request.getPublisher());
         book.setReleaseYear(request.getReleaseYear());
-        book.setStock(request.getStock());
-        book.setCategory(Category.valueOf(request.getCategory())); // wajib memiliki validari manual enum sebelum string dirubah ke categry
+        book.setStatus(request.getStatus());
+        book.setCategory(request.getCategory()); // wajib memiliki validari manual enum sebelum string dirubah ke categry
 
         return mapToResponse(bookRepository.save(book));
     }
 
     // (Delete) by id Book
+    @Transactional
     public void deleteBook(String id) {
         if (!bookRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found!");
@@ -173,26 +173,59 @@ public class BookService {
         bookRepository.deleteById(id);
     }
 
+    /// (Delete soft) from LIBRARIAN
+    @Transactional
+    public BookStatusResponse deleteSoft(String id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found!"));
+
+        // VALIDASI: Jangan hapus jika ada transaksi aktif
+        if (book.getStatus() == BookStatus.BORROWED || book.getStatus() == BookStatus.RESERVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot discard book: The book is currently " + book.getStatus());
+        }
+
+        // Eksekusi Soft Delete
+        book.setStatus(BookStatus.DISCARDED);
+
+        bookRepository.save(book);
+
+        return BookStatusResponse.builder()
+                .id(book.getId())
+                .title(book.getTitle())
+                .status(book.getStatus())
+                .build();
+    }
+
     // (Search) by isbn, title & author
-    public List<BookResponse> searchBooks(@NotNull String keyword) {
-        // 1. VALIDASI INPUT: Cegah keyword kosong atau null, trim() = untuk menghapus spasi berlebih di awal dan akhir kata
-        if (keyword == null || keyword.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kata kunci pencarian tidak boleh kosong!");
-        }
+    @Transactional(readOnly = true)
+    public Page<BookResponse> searchBooks(String keyword, Category category, Pageable pageable) {
+        Specification<Book> specification = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-        // 2. PROSES PENCARIAN
-        List<Book> books = bookRepository.searchBooks(keyword);
+            // 1. Logika Keyword (Search di firstName, lastName, dan email)
+            if (keyword != null && !keyword.isBlank()) {
+                String lowerKeyword = "%" + keyword.toLowerCase() + "%";
+                Predicate keywordPredicate = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("isbn")), lowerKeyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("author")), lowerKeyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), lowerKeyword)
+                );
+                predicates.add(keywordPredicate);
+            }
 
-        // 3. VALIDASI HASIL: Jika tidak ada buku yang cocok
-        if (books.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Buku dengan kata kunci '" + keyword + "' tidak ditemukan");
-        }
+            // 2. Filter berdasarkan category (Jika ada)
+            if (category != null) {
+                predicates.add(criteriaBuilder.equal(root.get("category"), category));
+            }
 
-        // 4. MAPPING KE RESPONSE
-        return books.stream()
-                .map(this::mapToResponse)
-                .toList();
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Book> books = bookRepository.findAll(specification, pageable);
+
+        // Transformasi Page<User> menjadi Page<UserResponse>
+        return books.map(this::mapToResponse);
     }
 
     // Helper: Entity -> Response (result)
@@ -204,7 +237,7 @@ public class BookService {
                 .author(book.getAuthor())
                 .publisher(book.getPublisher())
                 .releaseYear(book.getReleaseYear())
-                .stock(book.getStock())
+                .status(book.getStatus())
                 .category(book.getCategory())
                 .build();
     }

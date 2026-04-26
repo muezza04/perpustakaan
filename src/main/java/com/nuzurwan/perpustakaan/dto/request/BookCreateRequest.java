@@ -1,5 +1,7 @@
 package com.nuzurwan.perpustakaan.dto.request;
 
+import com.nuzurwan.perpustakaan.model.BookStatus;
+import com.nuzurwan.perpustakaan.model.Category;
 import io.swagger.v3.oas.annotations.media.Schema; // memberikan meta-data atau informasi tambahan pada sebuah class atau field
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -34,11 +36,10 @@ public class BookCreateRequest {
     // Gunakan logika dinamis di Service untuk Max tahun saat ini
     private Integer releaseYear;
 
-    @Min(value = 0, message = "Stok tidak boleh negatif")
-    @Max(value = 999, message = "Stok maksimal 999 per judul buku")
-    private int stock;
+    @NotNull(message = "This field is required")
+    private BookStatus status;
 
     @NotNull(message = "Kategori buku wajib dipilih")
     @Schema(example = "TECHNOLOGY", description = "[ TECHNOLOGY, SCIENCE, HEALTH_MEDICINE, ECONOMY_BUSINESS, SOCIAL_POLITICS, EDUCATION, ARTS_DESIGN, RELIGION, HISTORY_GEOGRAPHY, LITERATURE, LANGUAGE, REFERENCE, JOURNAL, THESIS, PROCEEDINGS, GENERAL ]")
-    private String category;
+    private Category category;
 }

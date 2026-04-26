@@ -4,37 +4,35 @@ import com.nuzurwan.perpustakaan.dto.request.LoginRequest;
 import com.nuzurwan.perpustakaan.dto.response.LoginResponse;
 import com.nuzurwan.perpustakaan.dto.response.WebResponse;
 import com.nuzurwan.perpustakaan.service.AuthService;
-// objek yang mewakili permintaan dari user. Di dalamnya terdapat semua informasi yang dikirimkan oleh browser (header, parameter, method, session access)
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-// objek yang disimpan di memori server untuk mengenali user tertentu. Loker Pribadi
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Authentication", description = "Endpoint untuk masuk dan keluar sistem. ")
+@Tag(name = "Authentication")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
+    @Operation(summary = "Login user for get cookie")
     public ResponseEntity<WebResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) { // <--- Ambil HttpServletRequest
+            HttpServletRequest httpRequest) {
 
+        // 1. Eksekusi Login & Registrasi Security Context di Service
         LoginResponse response = authService.login(request);
 
-        // WAJIB: Membuat session secara manual agar Set-Cookie muncul di header
+        // 2. Kelola Session Persistence (Urusan Controller)
         HttpSession session = httpRequest.getSession(true);
-        session.setAttribute("USER_SESSION", response);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
         return ResponseEntity.ok(
                 WebResponse.<LoginResponse>builder()
@@ -45,8 +43,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Logout from system", description = "Endpoint ini ditangani oleh Spring Security. Kirim POST untuk menghapus session.")
+    @Operation(
+            summary = "Logout from system",
+            description = "Endpoint ini ditangani secara otomatis oleh Spring Security Filter. " +
+                    "Memanggil ini akan menghapus session di server dan kuki di browser."
+    )
     public ResponseEntity<WebResponse<String>> logoutPlaceholder() {
-        return ResponseEntity.ok(WebResponse.<String>builder().message("Logout logic handled by Security").build());
+        // Baris ini secara teknis tidak akan dieksekusi karena dipotong oleh SecurityConfig,
+        // namun harus tetap valid secara sintaksis untuk keperluan dokumentasi Swagger.
+        return ResponseEntity.ok(
+                WebResponse.<String>builder()
+                        .message("Logout logic handled by Security")
+                        .data("OK")
+                        .build()
+        );
     }
 }

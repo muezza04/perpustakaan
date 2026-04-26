@@ -1,5 +1,7 @@
 package com.nuzurwan.perpustakaan.dto.request;
 
+import com.nuzurwan.perpustakaan.model.BookStatus;
+import com.nuzurwan.perpustakaan.model.Category;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -32,11 +34,10 @@ public class BookUpdateRequest {
     @Min(value = 1900, message = "Tahun terbit minimal 1900")
     private Integer releaseYear;
 
-    @Min(value = 0, message = "Stok tidak boleh negatif")
-    @Max(value = 999, message = "Stok maksimal 999")
-    private int stock;
+    @NotNull(message = "This field is required")
+    private BookStatus status;
 
-    @NotNull(message = "Kategori buku wajib dipilih")
+    @NotNull(message = "This field is required")
     @Schema(example = "TECHNOLOGY", description = "[ TECHNOLOGY, SCIENCE, HEALTH_MEDICINE, ECONOMY_BUSINESS, SOCIAL_POLITICS, EDUCATION, ARTS_DESIGN, RELIGION, HISTORY_GEOGRAPHY, LITERATURE, LANGUAGE, REFERENCE, JOURNAL, THESIS, PROCEEDINGS, GENERAL ]")
-    private String category;
+    private Category category;
 }
